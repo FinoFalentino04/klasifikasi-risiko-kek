@@ -61,7 +61,6 @@ else:
         persentase_tinggi = probabilitas[2] * 100
         
         # Menampilkan Hasil Klasifikasi Utama
-        st.write("### Kesimpulan Klasifikasi K-NN:")
         
         if klasifikasi_hasil == 2:
             st.error(f"🚨 **Kategori: RISIKO TINGGI (Indikasi KEK)**")
@@ -76,7 +75,7 @@ else:
         st.write("---")
         
         # Menampilkan Rincian Persentase untuk Analisis Evaluasi
-        st.write("#### Detail Probabilitas (Tingkat Keyakinan Algoritma):")
+        st.write("#### Detail Probabilitas:")
         st.markdown("Berikut adalah persentase tingkat kemiripan kondisi klinis pasien saat ini dengan riwayat data rekam medis ibu hamil lainnya di fasilitas kesehatan:")
         
         col_a, col_b, col_c = st.columns(3)
