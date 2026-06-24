@@ -77,7 +77,7 @@ else:
         
         # Menampilkan Rincian Persentase untuk Analisis Evaluasi
         st.write("#### Detail Probabilitas (Tingkat Keyakinan Algoritma):")
-        st.markdown("Berikut adalah persentase kedekatan jarak (*Euclidean*) pasien dengan nilai ketetanggaan $K=5$ di Kecamatan Cisaat:")
+        st.markdown("Berikut adalah persentase tingkat kemiripan kondisi klinis pasien saat ini dengan riwayat data rekam medis ibu hamil lainnya di fasilitas kesehatan:")
         
         col_a, col_b, col_c = st.columns(3)
         col_a.metric(label="🟢 Aman", value=f"{persentase_aman:.1f}%")
