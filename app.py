@@ -32,7 +32,7 @@ except Exception as e:
     st.error("Gagal memuat model. Pastikan file 'knn_model_3class_tuned.pkl' dan 'scaler_3class_tuned.pkl' ada di direktori.")
 
 # ==========================================
-# 3. ANTARMUKA INPUT DATA (REVISI USIA)
+# 3. ANTARMUKA INPUT DATA (REVISI USIA & IMT)
 # ==========================================
 st.subheader("Form Parameter Pasien")
 
@@ -52,9 +52,9 @@ col3, col4 = st.columns(2)
 with col3:
     bb = st.number_input("Berat Badan Sebelum Hamil (kg)", min_value=30.0, max_value=150.0, value=50.0)
 with col4:
-    tb = st.number_input("Tinggi Badan (cm)", min_value=100.0, max_value=200.0, value=150.0)
+    # IMT diubah menjadi INPUT langsung sesuai dengan variabel di laporan
+    imt = st.number_input("Indeks Massa Tubuh (IMT)", min_value=10.0, max_value=50.0, value=22.0)
 
-# Input LiLA dikembalikan ke antarmuka
 lila = st.number_input("Lingkar Lengan Atas / LiLA (cm)", min_value=15.0, max_value=40.0, value=23.5)
 
 # ==========================================
@@ -62,14 +62,13 @@ lila = st.number_input("Lingkar Lengan Atas / LiLA (cm)", min_value=15.0, max_va
 # ==========================================
 if st.button("Lakukan Skrining", type="primary"):
     
-    # Kalkulasi Dinamis
+    # Kalkulasi Dinamis (Hanya menyisakan Usia, rumus IMT dihapus)
     usia_tahun = (tgl_pemeriksaan - tgl_lahir).days // 365
-    imt = bb / ((tb / 100) ** 2)
     
-    # Tampilkan nilai yang dihitung
-    st.info(f"Kalkulasi Sistem: **Usia:** {usia_tahun} tahun | **IMT:** {imt:.2f}")
+    # Tampilkan nilai yang diolah sistem
+    st.info(f"Kalkulasi Sistem: **Usia:** {usia_tahun} tahun")
 
-    # Praproses input
+    # Praproses input (Menggunakan 4 fitur: Usia, BB, IMT inputan, LiLA)
     input_data = np.array([[usia_tahun, bb, imt, lila]])
     input_scaled = scaler_model.transform(input_data)
     
