@@ -36,17 +36,16 @@ except Exception as e:
 # ==========================================
 st.subheader("Form Parameter Pasien")
 
-# Menjawab Revisi Pak Didik: Usia berdasarkan tanggal pemeriksaan, bukan hari ini
 col1, col2 = st.columns(2)
 with col1:
     tgl_pemeriksaan = st.date_input("Tanggal Pemeriksaan")
 with col2:
-    # Perbaikan batas kalender untuk usia ibu hamil
+    # Perbaikan batas kalender untuk usia ibu hamil (bisa mundur sampai 1950)
     tgl_lahir = st.date_input(
         "Tanggal Lahir Pasien",
-        value=datetime.date(1996, 1, 1),          # Nilai awal (default) saat web dibuka (usia ~30 tahun)
-        min_value=datetime.date(1950, 1, 1),      # Batas kalender paling tua (tahun 1950)
-        max_value=datetime.date.today()           # Batas kalender paling muda (hari ini)
+        value=datetime.date(1996, 1, 1),
+        min_value=datetime.date(1950, 1, 1),
+        max_value=datetime.date.today()
     )
 
 col3, col4 = st.columns(2)
@@ -55,6 +54,7 @@ with col3:
 with col4:
     tb = st.number_input("Tinggi Badan (cm)", min_value=100.0, max_value=200.0, value=150.0)
 
+# Input LiLA dikembalikan ke antarmuka
 lila = st.number_input("Lingkar Lengan Atas / LiLA (cm)", min_value=15.0, max_value=40.0, value=23.5)
 
 # ==========================================
