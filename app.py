@@ -1,84 +1,105 @@
 import streamlit as st
-import numpy as np
+import pandas as pd
 import joblib
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Mengatur konfigurasi halaman web
-st.set_page_config(page_title="Klasifikasi KEK K-NN", layout="centered")
+# ==========================================
+# 1. KONFIGURASI DAN DISCLAIMER MEDIS
+# ==========================================
+st.set_page_config(page_title="DSS Risiko KEK - Cisaat", layout="centered")
 
-# Judul Aplikasi (Sesuai judul skripsi final)
-st.title("Klasifikasi Status Gizi dan Risiko KEK pada Ibu Hamil")
-st.subheader("Menggunakan Algoritma K-Nearest Neighbor (K-NN) di Kecamatan Cisaat")
+st.title("Sistem Pendukung Keputusan Skrining KEK")
+st.markdown("Prototipe klasifikasi risiko Kurang Energi Kronis (KEK) menggunakan algoritma *K-Nearest Neighbor*.")
 
-st.write("---")
+# Menjawab Revisi Pak Didik: Penurunan Klaim Medis
+st.warning("⚠️ **Perhatian:** Sistem ini adalah prototipe skrining awal (Sistem Pendukung Keputusan), bukan alat diagnosis medis. Keputusan akhir tetap berada di tangan tenaga kesehatan yang berwenang.")
 
-# Memuat Model K-NN dan Z-Score Scaler 3 Kategori
+# ==========================================
+# 2. INISIALISASI MODEL
+# ==========================================
 @st.cache_resource
-def load_model_and_scaler():
-    try:
-        model_knn = joblib.load('knn_model_3class.pkl')
-        model_scaler = joblib.load('scaler_3class.pkl')
-        return model_knn, model_scaler
-    except FileNotFoundError:
-        return None, None
+def load_model():
+    # Pastikan file .pkl berada di satu folder yang sama dengan app.py
+    knn = joblib.load('knn_model_3class_tuned.pkl')
+    scaler = joblib.load('scaler_3class_tuned.pkl')
+    return knn, scaler
 
-knn, scaler = load_model_and_scaler()
+try:
+    knn_model, scaler_model = load_model()
+except Exception as e:
+    st.error("Gagal memuat model. Pastikan file 'knn_model_3class_tuned.pkl' dan 'scaler_3class_tuned.pkl' ada di direktori.")
 
-if knn is None or scaler is None:
-    st.error("⚠️ File 'knn_model_3class.pkl' atau 'scaler_3class.pkl' tidak ditemukan. Pastikan kedua file tersebut berada di direktori yang sama dengan app.py.")
-else:
-    # Membuat Form Input Data Pasien
-    st.write("### Masukkan Data Klinis Warga / Pasien Baru")
+# ==========================================
+# 3. ANTARMUKA INPUT DATA (REVISI USIA)
+# ==========================================
+st.subheader("Form Parameter Pasien")
+
+# Menjawab Revisi Pak Didik: Usia berdasarkan tanggal pemeriksaan, bukan hari ini
+col1, col2 = st.columns(2)
+with col1:
+    tgl_pemeriksaan = st.date_input("Tanggal Pemeriksaan")
+with col2:
+    tgl_lahir = st.date_input("Tanggal Lahir Pasien")
+
+col3, col4 = st.columns(2)
+with col3:
+    bb = st.number_input("Berat Badan Sebelum Hamil (kg)", min_value=30.0, max_value=150.0, value=50.0)
+with col4:
+    tb = st.number_input("Tinggi Badan (cm)", min_value=100.0, max_value=200.0, value=150.0)
+
+lila = st.number_input("Lingkar Lengan Atas / LiLA (cm)", min_value=15.0, max_value=40.0, value=23.5)
+
+# ==========================================
+# 4. PROSES KLASIFIKASI & VISUALISASI GRAFIK
+# ==========================================
+if st.button("Lakukan Skrining", type="primary"):
     
-    col1, col2 = st.columns(2)
+    # Kalkulasi Dinamis
+    usia_tahun = (tgl_pemeriksaan - tgl_lahir).days // 365
+    imt = bb / ((tb / 100) ** 2)
     
-    with col1:
-        usia = st.number_input("Usia (Tahun)", min_value=10, max_value=60, value=25, step=1)
-        bb = st.number_input("Berat Badan Sebelum Hamil (kg)", min_value=30.0, max_value=150.0, value=50.0, step=0.1)
-        
-    with col2:
-        imt = st.number_input("Indeks Massa Tubuh (IMT)", min_value=10.0, max_value=50.0, value=21.5, step=0.1)
-        lila = st.number_input("Lingkar Lengan Atas / LiLA (cm)", min_value=15.0, max_value=40.0, value=24.0, step=0.1)
-        
-    st.write("---")
+    # Tampilkan nilai yang dihitung
+    st.info(f"Kalkulasi Sistem: **Usia:** {usia_tahun} tahun | **IMT:** {imt:.2f}")
+
+    # Praproses input
+    input_data = np.array([[usia_tahun, bb, imt, lila]])
+    input_scaled = scaler_model.transform(input_data)
     
-    # Tombol Eksekusi Logika K-NN
-    if st.button("Lakukan Klasifikasi Risiko", type="primary", use_container_width=True):
-        
-        # Membentuk array dari input pengguna
-        data_input = np.array([[usia, bb, imt, lila]])
-        
-        # Normalisasi data input menggunakan Z-Score Scaler
-        data_input_scaled = scaler.transform(data_input)
-        
-        # Mendapatkan kelas hasil klasifikasi akhir (0: Aman, 1: Sedang, 2: Tinggi)
-        klasifikasi_hasil = knn.predict(data_input_scaled)[0]
-        
-        # Mendapatkan nilai probabilitas untuk ketiga kelas
-        probabilitas = knn.predict_proba(data_input_scaled)[0]
-        
-        persentase_aman = probabilitas[0] * 100
-        persentase_sedang = probabilitas[1] * 100
-        persentase_tinggi = probabilitas[2] * 100
-        
-        # Menampilkan Hasil Klasifikasi Utama
-        
-        if klasifikasi_hasil == 2:
-            st.error(f"🚨 **Kategori: RISIKO TINGGI (Indikasi KEK)**")
-            st.write("Sistem mengklasifikasikan probabilitas dominan pada kategori Risiko Tinggi. Pasien memiliki indikator kritis (seperti LiLA < 23.5 cm atau kombinasi usia ekstrem dan IMT berisiko) yang sangat identik dengan kelompok pasien Kurang Energi Kronis (KEK).")
-        elif klasifikasi_hasil == 1:
-            st.warning(f"⚠️ **Kategori: RISIKO SEDANG**")
-            st.write("Sistem mengklasifikasikan adanya indikasi Risiko Sedang. Terdapat minimal satu parameter (usia, berat badan, atau IMT) yang kurang ideal, namun belum masuk tahap sangat kritis.")
-        else:
-            st.success(f"✅ **Kategori: AMAN / TIDAK BERISIKO**")
-            st.write("Sistem mengklasifikasikan status kehamilan pasien aman. Seluruh parameter klinis berada dalam rentang normal dan memiliki jarak kedekatan dengan kelompok ibu hamil dengan gizi sehat.")
-            
-        st.write("---")
-        
-        # Menampilkan Rincian Persentase untuk Analisis Evaluasi
-        st.write("#### Detail Probabilitas:")
-        st.markdown("Berikut adalah persentase tingkat kemiripan kondisi klinis pasien saat ini dengan riwayat data rekam medis ibu hamil lainnya di fasilitas kesehatan:")
-        
-        col_a, col_b, col_c = st.columns(3)
-        col_a.metric(label="🟢 Aman", value=f"{persentase_aman:.1f}%")
-        col_b.metric(label="🟡 Risiko Sedang", value=f"{persentase_sedang:.1f}%")
-        col_c.metric(label="🔴 Risiko Tinggi", value=f"{persentase_tinggi:.1f}%")
+    # Prediksi K-NN
+    prediksi = knn_model.predict(input_scaled)[0]
+    probabilitas = knn_model.predict_proba(input_scaled)[0]
+    
+    # Menjawab Revisi Pak Didik: Perbaikan Label Kelas
+    label_kelas = [
+        "Risiko Rendah Berdasarkan Variabel yang Dianalisis", 
+        "Risiko Sedang", 
+        "Risiko Tinggi"
+    ]
+    
+    hasil_akhir = label_kelas[prediksi]
+    
+    # Pewarnaan notifikasi berdasarkan hasil
+    if prediksi == 0:
+        st.success(f"**Hasil Klasifikasi:** {hasil_akhir}")
+    elif prediksi == 1:
+        st.warning(f"**Hasil Klasifikasi:** {hasil_akhir}")
+    else:
+        st.error(f"**Hasil Klasifikasi:** {hasil_akhir}")
+
+    # Menjawab Revisi Pak Asep: Penambahan Grafik Informatif
+    st.subheader("Grafik Probabilitas Kedekatan (K-NN)")
+    
+    fig, ax = plt.subplots(figsize=(7, 3))
+    label_grafik = ['Rendah', 'Sedang', 'Tinggi']
+    warna = ['#2ca02c', '#ff7f0e', '#d62728'] # Hijau, Oranye, Merah
+    
+    bars = ax.barh(label_grafik, probabilitas * 100, color=warna)
+    ax.set_xlabel('Probabilitas Kedekatan (%)')
+    ax.set_xlim(0, 100)
+    
+    for bar in bars:
+        lebar = bar.get_width()
+        ax.text(lebar + 2, bar.get_y() + bar.get_height()/2, f'{lebar:.1f}%', va='center', fontweight='bold')
+    
+    st.pyplot(fig)
