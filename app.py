@@ -3,6 +3,7 @@ import pandas as pd
 import joblib
 import numpy as np
 import matplotlib.pyplot as plt
+import datetime
 
 # ==========================================
 # 1. KONFIGURASI DAN DISCLAIMER MEDIS
@@ -40,7 +41,13 @@ col1, col2 = st.columns(2)
 with col1:
     tgl_pemeriksaan = st.date_input("Tanggal Pemeriksaan")
 with col2:
-    tgl_lahir = st.date_input("Tanggal Lahir Pasien")
+    # Perbaikan batas kalender untuk usia ibu hamil
+    tgl_lahir = st.date_input(
+        "Tanggal Lahir Pasien",
+        value=datetime.date(1996, 1, 1),          # Nilai awal (default) saat web dibuka (usia ~30 tahun)
+        min_value=datetime.date(1950, 1, 1),      # Batas kalender paling tua (tahun 1950)
+        max_value=datetime.date.today()           # Batas kalender paling muda (hari ini)
+    )
 
 col3, col4 = st.columns(2)
 with col3:
